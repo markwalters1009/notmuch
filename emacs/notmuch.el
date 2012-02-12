@@ -54,6 +54,7 @@
 (require 'notmuch-lib)
 (require 'notmuch-tag)
 (require 'notmuch-show)
+(require 'notmuch-pick)
 (require 'notmuch-mua)
 (require 'notmuch-hello)
 (require 'notmuch-maildir-fcc)
@@ -219,6 +220,8 @@ For a mouse binding, return nil."
     (define-key map "R" 'notmuch-search-reply-to-thread)
     (define-key map "m" 'notmuch-mua-new-mail)
     (define-key map "s" 'notmuch-search)
+    (define-key map "z" 'notmuch-pick)
+    (define-key map "Z" 'notmuch-search-pick-current-query)
     (define-key map "o" 'notmuch-search-toggle-order)
     (define-key map "c" 'notmuch-search-stash-map)
     (define-key map "=" 'notmuch-search-refresh-view)
@@ -231,6 +234,7 @@ For a mouse binding, return nil."
     (define-key map "-" 'notmuch-search-remove-tag)
     (define-key map "+" 'notmuch-search-add-tag)
     (define-key map (kbd "RET") 'notmuch-search-show-thread)
+    (define-key map (kbd "M-RET") 'notmuch-search-pick-thread)
     map)
   "Keymap for \"notmuch search\" buffers.")
 (fset 'notmuch-search-mode-map notmuch-search-mode-map)
@@ -907,6 +911,19 @@ same relative position within the new buffer."
     (notmuch-kill-this-buffer)
     (notmuch-search query oldest-first target-thread target-line continuation)
     (goto-char (point-min))))
+
+(defun notmuch-search-pick-current-query ()
+  "Call notmuch pick with the current query"
+  (interactive)
+  (notmuch-pick notmuch-search-query-string))
+
+(defun notmuch-search-pick-thread ()
+  "Show the selected thread with notmuch-pick"
+  (interactive)
+  (notmuch-pick (notmuch-search-find-thread-id)
+		notmuch-search-query-string
+		(notmuch-prettify-subject (notmuch-search-find-subject)))
+  (notmuch-pick-show-match-message-with-wait))
 
 (defcustom notmuch-poll-script nil
   "An external script to incorporate new mail into the notmuch database.
