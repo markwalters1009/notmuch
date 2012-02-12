@@ -44,6 +44,10 @@
   "Showing messages and threads."
   :group 'notmuch)
 
+(defgroup notmuch-pick nil
+  "Showing message and thread structure."
+  :group 'notmuch)
+
 (defgroup notmuch-send nil
   "Sending messages from Notmuch."
   :group 'notmuch)
