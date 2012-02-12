@@ -27,6 +27,7 @@
 (require 'notmuch-mua)
 
 (declare-function notmuch-search "notmuch" (query &optional oldest-first target-thread target-line continuation))
+(declare-function notmuch-pick "notmuch-pick" (query &optional query-context buffer-name))
 (declare-function notmuch-poll "notmuch" ())
 
 (defcustom notmuch-hello-recent-searches-max 10
@@ -283,6 +284,14 @@ afterwards.")
   (notmuch-search search notmuch-search-oldest-first nil nil
 		  #'notmuch-hello-search-continuation))
 
+(defun notmuch-hello-pick (&optional search)
+  (interactive)
+  (unless (null search)
+    (setq search (notmuch-hello-trim search))
+    (let ((history-delete-duplicates t))
+      (add-to-history 'notmuch-search-history search)))
+  (notmuch-pick search))
+
 (defun notmuch-hello-add-saved-search (widget)
   (interactive)
   (let ((search (widget-value
@@ -499,6 +508,7 @@ Such a list can be computed with `notmuch-hello-query-counts'."
     (define-key map (kbd "<C-tab>") 'widget-backward)
     (define-key map "m" 'notmuch-mua-new-mail)
     (define-key map "s" 'notmuch-hello-search)
+    (define-key map "z" 'notmuch-hello-pick)
     map)
   "Keymap for \"notmuch hello\" buffers.")
 (fset 'notmuch-hello-mode-map notmuch-hello-mode-map)
