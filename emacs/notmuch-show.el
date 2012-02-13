@@ -41,6 +41,7 @@
 (declare-function notmuch-fontify-headers "notmuch" nil)
 (declare-function notmuch-search-next-thread "notmuch" nil)
 (declare-function notmuch-search-show-thread "notmuch" nil)
+(declare-function notmuch-pick "notmuch-pick" (query &optional query-context buffer-name))
 
 (defcustom notmuch-message-headers '("Subject" "To" "Cc" "Date")
   "Headers that should be shown in a message, in this order.
@@ -1139,6 +1140,8 @@ reset based on the original query."
 	(define-key map (kbd "<backtab>") 'notmuch-show-previous-button)
 	(define-key map (kbd "TAB") 'notmuch-show-next-button)
 	(define-key map "s" 'notmuch-search)
+	(define-key map "z" 'notmuch-pick)
+	(define-key map "Z" 'notmuch-show-pick-current-query)
 	(define-key map "m" 'notmuch-mua-new-mail)
 	(define-key map "f" 'notmuch-show-forward-message)
 	(define-key map "r" 'notmuch-show-reply-sender)
@@ -1585,6 +1588,11 @@ to show, nil otherwise."
 	      (not (notmuch-show-message-visible-p))))
   (notmuch-show-mark-read)
   (notmuch-show-message-adjust))
+
+(defun notmuch-show-pick-current-query ()
+  "Call notmuch pick with the current query"
+  (interactive)
+  (notmuch-pick notmuch-show-thread-id notmuch-show-query-context))
 
 (defun notmuch-show-view-raw-message ()
   "View the file holding the current message."
