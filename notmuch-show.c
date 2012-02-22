@@ -942,6 +942,8 @@ do_show (void *ctx,
 
     if (format->message_set_start)
 	fputs (format->message_set_start, stdout);
+    if (format == &format_json)
+	fputs ("\n", stdout);
 
     for (threads = notmuch_query_search_threads (query);
 	 notmuch_threads_valid (threads);
@@ -962,6 +964,9 @@ do_show (void *ctx,
 	status = show_messages (ctx, format, messages, 0, params);
 	if (status && !res)
 	    res = status;
+
+	if (format == &format_json)
+	    fputs ("\n", stdout);
 
 	notmuch_thread_destroy (thread);
 
