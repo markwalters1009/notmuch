@@ -559,7 +559,7 @@ format_part_text (const void *ctx, mime_node_t *node,
 }
 
 void
-format_part_json (const void *ctx, mime_node_t *node, notmuch_bool_t first)
+format_part_json (const void *ctx, mime_node_t *node, notmuch_bool_t first, notmuch_bool_t output_body)
 {
     /* Any changes to the JSON format should be reflected in the file
      * devel/schemata. */
@@ -572,7 +572,8 @@ format_part_json (const void *ctx, mime_node_t *node, notmuch_bool_t first)
 	format_headers_json (ctx, GMIME_MESSAGE (node->part), FALSE);
 
 	printf (", \"body\": [");
-	format_part_json (ctx, mime_node_child (node, 0), first);
+	if (output_body)
+	    format_part_json (ctx, mime_node_child (node, 0), first, TRUE);
 
 	printf ("]}");
 	return;
@@ -652,16 +653,16 @@ format_part_json (const void *ctx, mime_node_t *node, notmuch_bool_t first)
     talloc_free (local);
 
     for (i = 0; i < node->nchildren; i++)
-	format_part_json (ctx, mime_node_child (node, i), i == 0);
+	format_part_json (ctx, mime_node_child (node, i), i == 0, TRUE);
 
     printf ("%s}", terminator);
 }
 
 static notmuch_status_t
 format_part_json_entry (const void *ctx, mime_node_t *node, unused (int indent),
-			unused (const notmuch_show_params_t *params))
+			const notmuch_show_params_t *params)
 {
-    format_part_json (ctx, node, TRUE);
+    format_part_json (ctx, node, TRUE, params->output_body);
 
     return NOTMUCH_STATUS_SUCCESS;
 }
@@ -1004,6 +1005,7 @@ notmuch_show_command (void *ctx, unused (int argc), unused (char *argv[]))
     notmuch_show_params_t params = {
 	.part = -1,
 	.omit_excluded = TRUE,
+	.output_body = TRUE,
 	.crypto = {
 	    .verify = FALSE,
 	    .decrypt = FALSE
@@ -1032,6 +1034,7 @@ notmuch_show_command (void *ctx, unused (int argc), unused (char *argv[]))
 	{ NOTMUCH_OPT_INT, &params.part, "part", 'p', 0 },
 	{ NOTMUCH_OPT_BOOLEAN, &params.crypto.decrypt, "decrypt", 'd', 0 },
 	{ NOTMUCH_OPT_BOOLEAN, &params.crypto.verify, "verify", 'v', 0 },
+	{ NOTMUCH_OPT_BOOLEAN, &params.output_body, "output-body", 'h', 0 },
 	{ 0, 0, 0, 0, 0 }
     };
 
@@ -1085,6 +1088,9 @@ notmuch_show_command (void *ctx, unused (int argc), unused (char *argv[]))
 	else
 	    entire_thread = ENTIRE_THREAD_FALSE;
     }
+
+    if (!params.output_body && format != &format_json)
+	fprintf (stderr,"Warning: --output_body=false only implemented for format=json\n");
 
     if (entire_thread == ENTIRE_THREAD_TRUE)
 	params.entire_thread = TRUE;
