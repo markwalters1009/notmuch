@@ -87,6 +87,7 @@ typedef struct notmuch_crypto {
 typedef struct notmuch_show_params {
     notmuch_bool_t entire_thread;
     notmuch_bool_t omit_excluded;
+    notmuch_bool_t headers_only;
     notmuch_bool_t raw;
     int part;
     notmuch_crypto_t crypto;
@@ -176,7 +177,7 @@ notmuch_status_t
 show_one_part (const char *filename, int part);
 
 void
-format_part_json (const void *ctx, mime_node_t *node, notmuch_bool_t first);
+format_part_json (const void *ctx, mime_node_t *node, notmuch_bool_t first, notmuch_bool_t headers_only);
 
 void
 format_headers_json (const void *ctx, GMimeMessage *message, notmuch_bool_t reply);
