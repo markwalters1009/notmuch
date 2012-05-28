@@ -15,8 +15,7 @@ emacs_sources := \
 	$(dir)/notmuch-crypto.el \
 	$(dir)/notmuch-tag.el \
 	$(dir)/coolj.el \
-	$(dir)/notmuch-print.el \
-	$(dir)/notmuch-pick.el
+	$(dir)/notmuch-print.el
 
 emacs_images := \
 	$(srcdir)/$(dir)/notmuch-logo.png
