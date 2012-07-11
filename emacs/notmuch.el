@@ -58,6 +58,7 @@
 (require 'notmuch-hello)
 (require 'notmuch-maildir-fcc)
 (require 'notmuch-message)
+(require 'notmuch-pick)
 
 (defcustom notmuch-search-result-format
   `(("date" . "%12s ")
@@ -1032,6 +1033,7 @@ current search results AND that are tagged with the given tag."
 (defun notmuch ()
   "Run notmuch and display saved searches, known tags, etc."
   (interactive)
+  (notmuch-pick-init)
   (notmuch-hello))
 
 (defun notmuch-interesting-buffer (b)
