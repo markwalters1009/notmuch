@@ -1031,7 +1031,8 @@ function is used."
 	  notmuch-show-parent-buffer parent-buffer
 	  notmuch-show-query-context query-context)
     (notmuch-show-build-buffer)
-    (notmuch-show-goto-first-wanted-message)))
+    (notmuch-show-goto-first-wanted-message)
+    (current-buffer)))
 
 (defun notmuch-show-build-buffer ()
   (let ((inhibit-read-only t))
