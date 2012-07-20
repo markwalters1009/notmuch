@@ -67,22 +67,64 @@
   :type 'boolean
   :group 'notmuch-pick)
 
-;; FIXME allow faces for each part
-(defface notmuch-pick-match-face
+
+;; Faces for messages that match the query.
+(defface notmuch-pick-match-date-face
+  '((t :inherit default))
+  "Face used in pick mode for the date in messages matching the query."
+  :group 'notmuch-pick
+  :group 'notmuch-faces)
+
+(defface notmuch-pick-match-author-face
+  '((t :inherit default))
+  "Face used in pick mode for the date in messages matching the query."
+  :group 'notmuch-pick
+  :group 'notmuch-faces)
+
+(defface notmuch-pick-match-subject-face
+  '((t :inherit default))
+  "Face used in pick mode for the subject in messages matching the query."
+  :group 'notmuch-pick
+  :group 'notmuch-faces)
+
+(defface notmuch-pick-match-tag-face
   '((((class color)
       (background dark))
-     (:foreground "white"))
+     (:foreground "OliveDrab1"))
     (((class color)
       (background light))
-     (:foreground "black"))
-    (t (:bold t)))
-  "Face used in pick mode for matching messages."
-  :group 'notmuch-pick)
+     (:foreground "navy blue" :bold t))
+    (t
+     (:bold t)))
+  "Face used in pick mode for tags in messages matching the query."
+  :group 'notmuch-pick
+  :group 'notmuch-faces)
 
-(defface notmuch-pick-no-match-face
+;; Faces for messages that do not match the query.
+
+(defface notmuch-pick-no-match-date-face
   '((t (:foreground "gray")))
-  "Face used in pick mode for messages not matching the query."
-  :group 'notmuch-pick)
+  "Face used in pick mode for non-matching dates."
+  :group 'notmuch-pick
+  :group 'notmuch-faces)
+
+(defface notmuch-pick-no-match-subject-face
+  '((t (:foreground "gray")))
+  "Face used in pick mode for non-matching subjects."
+  :group 'notmuch-pick
+  :group 'notmuch-faces)
+
+(defface notmuch-pick-no-match-author-face
+  '((t (:foreground "gray")))
+  "Face used in pick mode for the date in messages matching the query."
+  :group 'notmuch-pick
+  :group 'notmuch-faces)
+
+(defface notmuch-pick-no-match-tag-face
+  '((t (:foreground "gray")))
+  "Face used in pick mode face for non-matching tags."
+  :group 'notmuch-pick
+  :group 'notmuch-faces)
 
 ;; CHECK should this be done as a variable?
 (defvar notmuch-pick-previous-subject "")
@@ -515,28 +557,45 @@ unchanged ADDRESS if parsing fails."
 	 (tags (plist-get msg :tags))
 	 (bare-subject (notmuch-show-strip-re (plist-get headers :Subject)))
 	 (tree-status (plist-get msg :tree-status))
-	 (message-face (if match
-			   'notmuch-pick-match-face
-			 'notmuch-pick-no-match-face)))
+	 (subject-format-string (format "%%-%ss" (- 74 notmuch-pick-author-width)))
+         (author-face (if match
+                          'notmuch-pick-match-author-face
+                        'notmuch-pick-no-match-author-face))
+         (date-face (if match
+                        'notmuch-pick-match-date-face
+                      'notmuch-pick-no-match-date-face))
+         (subject-face (if match
+                           'notmuch-pick-match-subject-face
+                         'notmuch-pick-no-match-subject-face))
+         (tag-face (if match
+                       'notmuch-pick-match-tag-face
+                     'notmuch-pick-no-match-tag-face)))
 
-    (insert (propertize (concat
-			 (notmuch-pick-string-width
-			  (plist-get msg :date_relative) 12 t)
-			 "  "
-			 (format "%-75s"
-				 (concat
-				  (notmuch-pick-string-width
-				   (notmuch-pick-clean-address (plist-get headers :From))
-				   notmuch-pick-author-width)
-				  " "
-				  (mapconcat #'identity (reverse tree-status) "")
-				  (if (string= notmuch-pick-previous-subject bare-subject)
-				      " ..."
-				    bare-subject)))
-			 (if tags
-			     (concat " ("
-				     (mapconcat #'identity tags ", ") ")"))
-			 "") 'face message-face))
+    (insert (propertize (notmuch-pick-string-width
+                          (plist-get msg :date_relative) 12 t)
+                         'face date-face))
+    (insert "  ")
+    (insert (propertize (notmuch-pick-string-width
+			 (notmuch-pick-clean-address (plist-get headers :From))
+			 notmuch-pick-author-width)
+                        'face author-face))
+    (insert " ")
+
+    (insert (propertize
+	     (format subject-format-string
+		     (concat
+		      (mapconcat #'identity (reverse tree-status) "")
+		      (if (string= notmuch-pick-previous-subject bare-subject)
+			  " ..."
+			bare-subject)))
+	     'face subject-face))
+    (when tags
+      (insert " (")
+      (insert (propertize
+	       (mapconcat #'identity tags ", ")
+	       'face tag-face))
+      (insert ")"))
+
     (notmuch-pick-set-message-properties msg)
     (insert "\n")
 
