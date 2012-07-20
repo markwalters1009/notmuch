@@ -56,10 +56,18 @@
   "Showing message and thread structure."
   :group 'notmuch)
 
-;; FIXME probably wants to be like in search
-(defcustom notmuch-pick-author-width 20
-  "Width of the author field."
-  :type 'integer
+(defcustom notmuch-pick-result-format
+  `(("date" . "%12s ")
+    ("authors" . "%21s ")
+    ("subject" . "%-54s ")
+    ("tags" . "(%s)"))
+  "Result formatting for Pick. Supported fields are:
+        date, authors, subject, tags
+Note subject includes the tree structure graphics.
+For example:
+        (setq notmuch-pick-result-format \(\(\"authors\" . \"%-40s\"\)
+                                             \(\"subject\" . \"%s\"\)\)\)"
+  :type '(alist :key-type (string) :value-type (string))
   :group 'notmuch-pick)
 
 (defcustom notmuch-pick-asynchronous-parser nil
@@ -551,55 +559,60 @@ unchanged ADDRESS if parsing fails."
 	p-name))
     (error address)))
 
-(defun notmuch-pick-insert-msg (msg)
+(defun notmuch-pick-insert-field (field format-string msg)
   (let* ((headers (plist-get msg :headers))
-	 (match (plist-get msg :match))
-	 (tags (plist-get msg :tags))
-	 (bare-subject (notmuch-show-strip-re (plist-get headers :Subject)))
-	 (tree-status (plist-get msg :tree-status))
-	 (subject-format-string (format "%%-%ss" (- 74 notmuch-pick-author-width)))
-         (author-face (if match
-                          'notmuch-pick-match-author-face
-                        'notmuch-pick-no-match-author-face))
-         (date-face (if match
-                        'notmuch-pick-match-date-face
-                      'notmuch-pick-no-match-date-face))
-         (subject-face (if match
-                           'notmuch-pick-match-subject-face
-                         'notmuch-pick-no-match-subject-face))
-         (tag-face (if match
-                       'notmuch-pick-match-tag-face
-                     'notmuch-pick-no-match-tag-face)))
+	(match (plist-get msg :match)))
+    (cond
+     ((string-equal field "date")
+      (let ((face (if match
+		      'notmuch-pick-match-date-face
+		    'notmuch-pick-no-match-date-face)))
+	(insert (propertize (format format-string (plist-get msg :date_relative))
+			    'face face))))
 
-    (insert (propertize (notmuch-pick-string-width
-                          (plist-get msg :date_relative) 12 t)
-                         'face date-face))
-    (insert "  ")
-    (insert (propertize (notmuch-pick-string-width
-			 (notmuch-pick-clean-address (plist-get headers :From))
-			 notmuch-pick-author-width)
-                        'face author-face))
-    (insert " ")
+     ((string-equal field "subject")
+      (let ((tree-status (plist-get msg :tree-status))
+	    (bare-subject (notmuch-show-strip-re (plist-get headers :Subject)))
+	    (face (if match
+		      'notmuch-pick-match-subject-face
+		    'notmuch-pick-no-match-subject-face)))
+	(insert (propertize (format format-string
+				    (concat
+				     (mapconcat #'identity (reverse tree-status) "")
+				     (if (string= notmuch-pick-previous-subject bare-subject)
+					 " ..."
+				       bare-subject)))
+			    'face face))
+	(setq notmuch-pick-previous-subject bare-subject)))
 
-    (insert (propertize
-	     (format subject-format-string
-		     (concat
-		      (mapconcat #'identity (reverse tree-status) "")
-		      (if (string= notmuch-pick-previous-subject bare-subject)
-			  " ..."
-			bare-subject)))
-	     'face subject-face))
-    (when tags
-      (insert " (")
-      (insert (propertize
-	       (mapconcat #'identity tags ", ")
-	       'face tag-face))
-      (insert ")"))
+     ((string-equal field "authors")
+      (let ((author (notmuch-pick-clean-address (plist-get headers :From)))
+	    (len (length (format format-string "")))
+	    (face (if match
+		      'notmuch-pick-match-author-face
+		    'notmuch-pick-no-match-author-face)))
+      (insert (propertize (format format-string
+				  (notmuch-pick-string-width author (- len 2)))
+			  'face face))))
 
-    (notmuch-pick-set-message-properties msg)
-    (insert "\n")
+     ((string-equal field "tags")
+      (let ((tags (plist-get msg :tags))
+	    (face (if match
+			  'notmuch-pick-match-tag-face
+			'notmuch-pick-no-match-tag-face)))
+	(when tags
+	  (insert (propertize (format format-string
+				      (mapconcat #'identity tags ", "))
+			      'face face))))))))
 
-    (setq notmuch-pick-previous-subject bare-subject)))
+
+(defun notmuch-pick-insert-msg (msg)
+  "Insert the message MSG according to notmuch-pick-result-format"
+  (dolist (spec notmuch-pick-result-format)
+    (notmuch-pick-insert-field (car spec) (cdr spec) msg))
+  (notmuch-pick-set-message-properties msg)
+  (insert "\n"))
+
 
 (defun notmuch-pick-insert-tree (tree depth tree-status first last)
   "Insert the message tree TREE at depth DEPTH in the current thread."
