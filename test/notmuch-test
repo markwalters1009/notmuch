@@ -60,6 +60,7 @@ TESTS="
   emacs-hello
   emacs-show
   missing-headers
+  emacs-pick
 "
 TESTS=${NOTMUCH_TESTS:=$TESTS}
 
