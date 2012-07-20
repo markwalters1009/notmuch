@@ -59,6 +59,7 @@ TESTS="
   emacs-address-cleaning
   emacs-hello
   emacs-show
+  emacs-pick
 "
 TESTS=${NOTMUCH_TESTS:=$TESTS}
 
