@@ -259,24 +259,21 @@ Some useful entries are:
 		     new-end
 		   (min init-point (- new-end 1)))))))
 
-(defun notmuch-pick-tag-message (&rest tag-changes)
-  "Change tags for the current message.
+(defun notmuch-pick-tag-update-display (&optional tag-changes)
+  "Update display for TAG-CHANGES to current message.
 
-TAG-CHANGES is a list of tag operations for `notmuch-tag'."
+Does NOT change the database."
   (let* ((current-tags (notmuch-pick-get-tags))
 	 (new-tags (notmuch-update-tags current-tags tag-changes)))
     (unless (equal current-tags new-tags)
-      (funcall 'notmuch-tag (notmuch-pick-get-message-id) tag-changes)
       (notmuch-pick-set-tags new-tags)
       (notmuch-pick-refresh-result))))
 
-;;FIXME needs updating?
-(defun notmuch-pick-tag (&optional initial-input)
-  "Change tags for the current message, read input from the minibuffer."
+(defun notmuch-pick-tag (&optional tag-changes)
+  "Change tags for the current message"
   (interactive)
-  (let ((tag-changes (notmuch-read-tag-changes
-		      initial-input (notmuch-pick-get-message-id))))
-    (apply 'notmuch-pick-tag-message tag-changes)))
+  (setq tag-changes (funcall 'notmuch-tag (notmuch-pick-get-message-id) tag-changes))
+  (notmuch-pick-tag-update-display tag-changes))
 
 (defun notmuch-pick-add-tag ()
   "Same as `notmuch-pick-tag' but sets initial input to '+'."
@@ -337,7 +334,8 @@ TAG-CHANGES is a list of tag operations for `notmuch-tag'."
 	    (split-window-vertically (/ (window-height) 4)))
       (with-selected-window notmuch-pick-message-window
 	(setq current-prefix-arg '(4))
-	(setq buffer (notmuch-show id nil nil nil))))
+	(setq buffer (notmuch-show id nil nil nil)))
+      (notmuch-pick-tag-update-display (list "-unread")))
     (setq notmuch-pick-message-buffer buffer)))
 
 (defun notmuch-pick-show-message-out ()
@@ -393,7 +391,7 @@ TAG-CHANGES is a list of tag operations for `notmuch-tag'."
 (defun notmuch-pick-archive-message ()
   "Archive the current message and move to next matching message."
   (interactive)
-  (notmuch-pick-tag-message "-inbox")
+  (notmuch-pick-tag "-inbox")
   (notmuch-pick-next-matching-message))
 
 (defun notmuch-pick-next-message ()
