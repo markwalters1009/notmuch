@@ -53,7 +53,7 @@ test_emacs '(notmuch-hello)
             (notmuch-pick-from-search-thread)
             (notmuch-test-wait)
             (test-output)'
-test_expect_equal_file OUTPUT $EXPECTED/notmuch-pick-single-thread
+test_expect_equal_file OUTPUT $EXPECTED/notmuch-pick-single-thread-2
 
 test_begin_subtest "Pick of a single thread (sync from search)"
 test_emacs '(setq notmuch-pick-asynchronous-parser nil)
@@ -65,7 +65,7 @@ test_emacs '(setq notmuch-pick-asynchronous-parser nil)
             (notmuch-pick-from-search-thread)
             (notmuch-test-wait)
             (test-output)'
-test_expect_equal_file OUTPUT $EXPECTED/notmuch-pick-single-thread
+test_expect_equal_file OUTPUT $EXPECTED/notmuch-pick-single-thread-2
 
 test_begin_subtest "Pick of a single thread (from show)"
 test_emacs '(notmuch-hello)
