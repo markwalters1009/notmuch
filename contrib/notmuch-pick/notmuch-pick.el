@@ -63,14 +63,15 @@
 	   (notmuch-pick-setup-show-out))))
 
 (defcustom notmuch-pick-result-format
-  `(("date" . "%12s ")
-    ("authors" . "%21s ")
-    ("subject" . "%-54s ")
+  `(("date" . "%12s  ")
+    ("authors" . "%-20s")
+    ("subject" . " %-54s ")
     ("tags" . "(%s)"))
-  "Result formatting for Pick. Supported fields are:
-        date, authors, subject, tags
-Note subject includes the tree structure graphics.
-For example:
+  "Result formatting for Pick. Supported fields are: date,
+        authors, subject, tags Note: subject includes the tree
+        structure graphics, and the author string should not
+        contain whitespace (put it in the neighbouring fields
+        instead).  For example:
         (setq notmuch-pick-result-format \(\(\"authors\" . \"%-40s\"\)
                                              \(\"subject\" . \"%s\"\)\)\)"
   :type '(alist :key-type (string) :value-type (string))
@@ -452,13 +453,6 @@ Does NOT change the database."
     (erase-buffer)
     (notmuch-pick-worker basic-query query-context (get-buffer buffer-name))))
 
-(defun notmuch-pick-string-width (string width &optional right)
-  (let ((s (format (format "%%%s%ds" (if right "" "-") width)
-		   string)))
-    (if (> (length s) width)
-	(substring s 0 width)
-      s)))
-
 (defmacro with-current-notmuch-pick-message (&rest body)
   "Evaluate body with current buffer set to the text of current message"
   `(save-excursion
@@ -567,9 +561,10 @@ unchanged ADDRESS if parsing fails."
 	    (face (if match
 		      'notmuch-pick-match-author-face
 		    'notmuch-pick-no-match-author-face)))
-      (insert (propertize (format format-string
-				  (notmuch-pick-string-width author (- len 2)))
-			  'face face))))
+	(when (> (length author) len)
+	  (setq author (substring author 0 len)))
+	(insert (propertize (format format-string author)
+			    'face face))))
 
      ((string-equal field "tags")
       (let ((tags (plist-get msg :tags))
