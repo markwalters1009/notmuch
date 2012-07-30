@@ -820,11 +820,60 @@ non-authors is found, assume that all of the authors match."
     (insert (apply #'format string objects))
     (insert "\n")))
 
-(defvar notmuch-search-process-state nil
-  "Parsing state of the search process filter.")
+(defvar notmuch-json-state nil
+  "State of the JSON parser.")
 
-(defvar notmuch-search-json-parser nil
-  "Incremental JSON parser for the search process filter.")
+(defvar notmuch-json-parser nil
+  "Incremental JSON parser.")
+
+(defun notmuch-json-parse-partial-list (result-function error-function results-buf)
+  "Parse a partial JSON list from current buffer.
+
+This function consumes a JSON list from the current buffer,
+applying RESULT-FUNCTION in buffer RESULT-BUFFER to each complete
+value in the list.  It operates incrementally and should be
+called whenever the buffer has been extended with additional
+data.
+
+If there is a syntax error, this will attempt to resynchronize
+with the input and will apply ERROR-FUNCTION in buffer
+RESULT-BUFFER to any input that was skipped."
+  (let (done)
+    (unless (local-variable-p 'notmuch-json-parser)
+      (set (make-local-variable 'notmuch-json-parser)
+	   (notmuch-json-create-parser (current-buffer)))
+      (set (make-local-variable 'notmuch-json-state) 'begin))
+    (while (not done)
+      (condition-case nil
+	  (case notmuch-json-state
+		((begin)
+		 ;; Enter the results list
+		 (if (eq (notmuch-json-begin-compound
+			  notmuch-json-parser) 'retry)
+		     (setq done t)
+		   (setq notmuch-json-state 'result)))
+		((result)
+		 ;; Parse a result
+		 (let ((result (notmuch-json-read notmuch-json-parser)))
+		   (case result
+			 ((retry) (setq done t))
+			 ((end) (setq notmuch-json-state 'end))
+			 (otherwise (with-current-buffer results-buf
+				      (funcall result-function result))))))
+		((end)
+		 ;; Any trailing data is unexpected
+		 (notmuch-json-eof notmuch-json-parser)
+		 (setq done t)))
+	(json-error
+	 ;; Do our best to resynchronize and ensure forward
+	 ;; progress
+	 (let ((bad (buffer-substring (line-beginning-position)
+				      (line-end-position))))
+	   (forward-line)
+	   (with-current-buffer results-buf
+	     (funcall error-function bad))))))
+    ;; Clear out what we've parsed
+    (delete-region (point-min) (point))))
 
 (defun notmuch-search-process-filter (proc string)
   "Process and filter the output of \"notmuch search\""
@@ -838,41 +887,10 @@ non-authors is found, assume that all of the authors match."
 	;; Insert new data
 	(save-excursion
 	  (goto-char (point-max))
-	  (insert string)))
-      (with-current-buffer results-buf
-	(while (not done)
-	  (condition-case nil
-	      (case notmuch-search-process-state
-		((begin)
-		 ;; Enter the results list
-		 (if (eq (notmuch-json-begin-compound
-			  notmuch-search-json-parser) 'retry)
-		     (setq done t)
-		   (setq notmuch-search-process-state 'result)))
-		((result)
-		 ;; Parse a result
-		 (let ((result (notmuch-json-read notmuch-search-json-parser)))
-		   (case result
-		     ((retry) (setq done t))
-		     ((end) (setq notmuch-search-process-state 'end))
-		     (otherwise (notmuch-search-show-result result)))))
-		((end)
-		 ;; Any trailing data is unexpected
-		 (notmuch-json-eof notmuch-search-json-parser)
-		 (setq done t)))
-	    (json-error
-	     ;; Do our best to resynchronize and ensure forward
-	     ;; progress
-	     (notmuch-search-show-error
-	      "%s"
-	      (with-current-buffer parse-buf
-		(let ((bad (buffer-substring (line-beginning-position)
-					     (line-end-position))))
-		  (forward-line)
-		  bad))))))
-	;; Clear out what we've parsed
-	(with-current-buffer parse-buf
-	  (delete-region (point-min) (point)))))))
+	  (insert string))
+	(notmuch-json-parse-partial-list 'notmuch-search-show-result
+					 'notmuch-search-show-error
+					 results-buf)))))
 
 (defun notmuch-search-tag-all (&optional tag-changes)
   "Add/remove tags from all messages in current search buffer.
@@ -984,9 +1002,6 @@ Other optional parameters are used as follows:
 	      ;; This buffer will be killed by the sentinel, which
 	      ;; should be called no matter how the process dies.
 	      (parse-buf (generate-new-buffer " *notmuch search parse*")))
-	  (set (make-local-variable 'notmuch-search-process-state) 'begin)
-	  (set (make-local-variable 'notmuch-search-json-parser)
-	       (notmuch-json-create-parser parse-buf))
 	  (process-put proc 'parse-buf parse-buf)
 	  (set-process-sentinel proc 'notmuch-search-process-sentinel)
 	  (set-process-filter proc 'notmuch-search-process-filter)
