@@ -715,9 +715,9 @@ Complete list of currently available key bindings:
 
   (erase-buffer)
   (goto-char (point-min))
-  (let* ((search-args (concat "\'" basic-query
+  (let* ((search-args (concat basic-query
 		       (if query-context (concat " and (" query-context ")"))
-		       "\'"))
+		       ))
 	 (message-arg "--entire-thread"))
     (if (equal (car (process-lines notmuch-command "count" search-args)) "0")
 	(setq search-args basic-query))
