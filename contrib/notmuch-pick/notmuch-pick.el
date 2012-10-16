@@ -383,7 +383,8 @@ Does NOT change the database."
 (defun notmuch-pick-close-message-window ()
   "Close the message-window. Return t if close succeeds."
   (interactive)
-  (when (window-live-p notmuch-pick-message-window)
+  (when (and (window-live-p notmuch-pick-message-window)
+	     (eq (window-buffer notmuch-pick-message-window) notmuch-pick-message-buffer))
     (delete-window notmuch-pick-message-window)
     (unless (get-buffer-window-list notmuch-pick-message-buffer)
       (kill-buffer notmuch-pick-message-buffer))
